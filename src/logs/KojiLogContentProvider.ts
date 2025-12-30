@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import { readKojiConfig, KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY } from '../config';
+import { requestText } from '../net/requestText';
+import { loadTlsOptions } from '../koji/tls';
 
 export interface KojiLogRequest {
   url: string;
@@ -25,14 +28,26 @@ export class KojiLogContentProvider implements vscode.TextDocumentContentProvide
   private readonly onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
   public readonly onDidChange = this.onDidChangeEmitter.event;
 
+  constructor(private readonly secrets: vscode.SecretStorage) {}
+
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
     const { url, title } = parseKojiLogUri(uri);
     try {
-      const resp = await fetch(url, { method: 'GET' });
-      if (!resp.ok) {
-        return `Failed to fetch ${title}\nHTTP ${resp.status} ${resp.statusText}\nURL: ${url}\n`;
+      const cfg = readKojiConfig();
+      const passphrase = await this.secrets.get(KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY);
+      const tls = await loadTlsOptions({
+        caFile: cfg.ssl.caFile,
+        certFile: cfg.ssl.certFile,
+        keyFile: cfg.ssl.keyFile,
+        keyPassphrase: passphrase ?? undefined,
+        rejectUnauthorized: cfg.ssl.rejectUnauthorized,
+      });
+
+      const resp = await requestText(url, { method: 'GET', tls });
+      if (resp.status < 200 || resp.status >= 300) {
+        return `Failed to fetch ${title}\nHTTP ${resp.status} ${resp.statusText}\nURL: ${url}\n\n${resp.bodyText}\n`;
       }
-      return await resp.text();
+      return resp.bodyText;
     } catch (e: any) {
       return `Failed to fetch ${title}\n${String(e?.message ?? e)}\nURL: ${url}\n`;
     }

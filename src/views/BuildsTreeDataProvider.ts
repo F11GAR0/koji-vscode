@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { readKojiConfig, KOJI_PASSWORD_SECRET_KEY } from '../config';
+import { readKojiConfig, KOJI_PASSWORD_SECRET_KEY, KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY } from '../config';
 import { KojiClient, type KojiBuild } from '../koji/KojiClient';
+import { loadTlsOptions } from '../koji/tls';
 import { KojiBuildItem } from './items';
 
 export class BuildsTreeDataProvider implements vscode.TreeDataProvider<KojiBuildItem> {
@@ -21,7 +22,15 @@ export class BuildsTreeDataProvider implements vscode.TreeDataProvider<KojiBuild
 
   async getChildren(): Promise<KojiBuildItem[]> {
     const cfg = readKojiConfig();
-    const client = new KojiClient({ hubUrl: cfg.hubUrl });
+    const keyPassphrase = await this.secrets.get(KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY);
+    const tls = await loadTlsOptions({
+      caFile: cfg.ssl.caFile,
+      certFile: cfg.ssl.certFile,
+      keyFile: cfg.ssl.keyFile,
+      keyPassphrase: keyPassphrase ?? undefined,
+      rejectUnauthorized: cfg.ssl.rejectUnauthorized,
+    });
+    const client = new KojiClient({ hubUrl: cfg.hubUrl, tls });
 
     const password = await this.secrets.get(KOJI_PASSWORD_SECRET_KEY);
     if (cfg.username && password) {
@@ -29,6 +38,13 @@ export class BuildsTreeDataProvider implements vscode.TreeDataProvider<KojiBuild
         await client.login(cfg.username, password);
       } catch {
         // Non-fatal; allow anonymous calls.
+      }
+    }
+    if (tls?.cert && tls?.key) {
+      try {
+        await client.sslLogin();
+      } catch {
+        // Non-fatal; some hubs may not require/allow sslLogin.
       }
     }
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readKojiConfig, KOJI_PASSWORD_SECRET_KEY } from './config';
+import { readKojiConfig, KOJI_PASSWORD_SECRET_KEY, KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY } from './config';
 import { COMMON_TASK_LOG_FILES, taskLogUrl } from './koji/logs';
 import { KojiLogContentProvider, KOJI_LOG_SCHEME, createKojiLogUri } from './logs/KojiLogContentProvider';
 import { BuildsTreeDataProvider } from './views/BuildsTreeDataProvider';
@@ -20,6 +20,23 @@ async function setPassword(secrets: vscode.SecretStorage): Promise<void> {
 async function clearPassword(secrets: vscode.SecretStorage): Promise<void> {
   await secrets.delete(KOJI_PASSWORD_SECRET_KEY);
   vscode.window.showInformationMessage('Koji password cleared.');
+}
+
+async function setKeyPassphrase(secrets: vscode.SecretStorage): Promise<void> {
+  const pass = await vscode.window.showInputBox({
+    title: 'TLS private key passphrase',
+    prompt: 'Stored securely in VS Code Secret Storage',
+    password: true,
+    ignoreFocusOut: true,
+  });
+  if (pass === undefined) return;
+  await secrets.store(KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY, pass);
+  vscode.window.showInformationMessage('TLS key passphrase saved.');
+}
+
+async function clearKeyPassphrase(secrets: vscode.SecretStorage): Promise<void> {
+  await secrets.delete(KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY);
+  vscode.window.showInformationMessage('TLS key passphrase cleared.');
 }
 
 async function openTaskLog(taskId?: number): Promise<void> {
@@ -75,7 +92,7 @@ async function openBuildInBrowser(buildId: number, webUrlFromItem?: string): Pro
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  const logProvider = new KojiLogContentProvider();
+  const logProvider = new KojiLogContentProvider(context.secrets);
   context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(KOJI_LOG_SCHEME, logProvider));
 
   const buildsProvider = new BuildsTreeDataProvider(context.secrets);
@@ -89,6 +106,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('koji.refreshTasks', () => tasksProvider.refresh()),
     vscode.commands.registerCommand('koji.setPassword', () => setPassword(context.secrets)),
     vscode.commands.registerCommand('koji.clearPassword', () => clearPassword(context.secrets)),
+    vscode.commands.registerCommand('koji.setKeyPassphrase', () => setKeyPassphrase(context.secrets)),
+    vscode.commands.registerCommand('koji.clearKeyPassphrase', () => clearKeyPassphrase(context.secrets)),
     vscode.commands.registerCommand('koji.openTaskLog', (taskId?: number) => openTaskLog(taskId)),
     vscode.commands.registerCommand('koji.openBuildInBrowser', (buildId: number, webUrl?: string) =>
       openBuildInBrowser(buildId, webUrl)

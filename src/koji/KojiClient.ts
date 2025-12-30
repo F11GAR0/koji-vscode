@@ -1,4 +1,6 @@
 import { decodeMethodResponse, encodeMethodCall, type XmlRpcValue } from './xmlrpc';
+import { requestText } from '../net/requestText';
+import type { LoadedTlsOptions } from './tls';
 
 export interface KojiBuild {
   build_id: number;
@@ -28,28 +30,31 @@ export interface KojiClientOptions {
   hubUrl: string;
   userAgent?: string;
   cookie?: string;
+  tls?: LoadedTlsOptions;
 }
 
 export class KojiClient {
   private cookie?: string;
   private readonly hubUrl: string;
   private readonly userAgent: string;
+  private readonly tls?: LoadedTlsOptions;
 
   constructor(opts: KojiClientOptions) {
     this.hubUrl = opts.hubUrl;
     this.userAgent = opts.userAgent ?? 'koji-vscode';
     this.cookie = opts.cookie;
+    this.tls = opts.tls;
   }
 
   getCookie(): string | undefined {
     return this.cookie;
   }
 
-  private updateCookieFromHeaders(headers: Headers): void {
-    // Koji uses "koji_session=..." cookie. We keep the whole cookie header value (without attributes).
-    const setCookie = headers.get('set-cookie');
-    if (!setCookie) return;
-    const first = setCookie.split(',')[0]; // good enough for single cookie
+  private updateCookieFromHeaders(headers: Record<string, string | string[] | undefined>): void {
+    // Koji uses "koji_session=..." cookie. Keep only "name=value" part.
+    const setCookie = headers['set-cookie'];
+    const first = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+    if (!first) return;
     const cookiePart = first.split(';')[0]?.trim();
     if (cookiePart) this.cookie = cookiePart;
   }
@@ -63,25 +68,24 @@ export class KojiClient {
     };
     if (this.cookie) headers.cookie = this.cookie;
 
-    const resp = await fetch(this.hubUrl, {
-      method: 'POST',
-      headers,
-      body,
-    });
+    const resp = await requestText(this.hubUrl, { method: 'POST', headers, body, tls: this.tls });
+    this.updateCookieFromHeaders(resp.headers as any);
 
-    this.updateCookieFromHeaders(resp.headers);
-
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      throw new Error(`Koji HTTP ${resp.status} ${resp.statusText}${text ? `: ${text}` : ''}`);
+    if (resp.status < 200 || resp.status >= 300) {
+      throw new Error(`Koji HTTP ${resp.status} ${resp.statusText}${resp.bodyText ? `: ${resp.bodyText}` : ''}`);
     }
 
-    const xml = await resp.text();
+    const xml = resp.bodyText;
     return decodeMethodResponse(xml) as unknown as T;
   }
 
   async login(username: string, password: string): Promise<void> {
     await this.call('login', [username, password]);
+  }
+
+  async sslLogin(): Promise<void> {
+    // For setups that use client cert auth, Koji exposes sslLogin().
+    await this.call('sslLogin', []);
   }
 
   async listBuildsLatest(limit: number): Promise<KojiBuild[]> {

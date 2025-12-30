@@ -18,6 +18,8 @@
     "onCommand:koji.refreshTasks",
     "onCommand:koji.setPassword",
     "onCommand:koji.clearPassword",
+    "onCommand:koji.setKeyPassphrase",
+    "onCommand:koji.clearKeyPassphrase",
     "onCommand:koji.openTaskLog"
   ],
   "main": "./dist/extension.js",
@@ -75,6 +77,26 @@
             "CANCELED"
           ],
           "description": "Optional: filter tasks by state."
+        },
+        "koji.ssl.caFile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to CA certificate bundle (PEM) for TLS verification when connecting to Koji."
+        },
+        "koji.ssl.certFile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to client certificate (PEM) for Koji SSL auth."
+        },
+        "koji.ssl.keyFile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to client private key (PEM) for Koji SSL auth. Passphrase is stored in Secret Storage via command."
+        },
+        "koji.ssl.rejectUnauthorized": {
+          "type": "boolean",
+          "default": true,
+          "description": "Verify TLS certificates. Turn off only for testing (insecure)."
         }
       }
     },
@@ -98,6 +120,14 @@
       {
         "command": "koji.openTaskLog",
         "title": "Koji: Open Task Log"
+      },
+      {
+        "command": "koji.setKeyPassphrase",
+        "title": "Koji: Set TLS Key Passphrase"
+      },
+      {
+        "command": "koji.clearKeyPassphrase",
+        "title": "Koji: Clear TLS Key Passphrase"
       }
     ],
     "viewsContainers": {

@@ -11,9 +11,16 @@ export interface KojiConfig {
   tasksLimit: number;
   tasksOwner: string;
   tasksState: KojiTaskStateFilter;
+  ssl: {
+    caFile: string;
+    certFile: string;
+    keyFile: string;
+    rejectUnauthorized: boolean;
+  };
 }
 
 export const KOJI_PASSWORD_SECRET_KEY = 'koji.password';
+export const KOJI_SSL_KEY_PASSPHRASE_SECRET_KEY = 'koji.ssl.keyPassphrase';
 
 export function readKojiConfig(): KojiConfig {
   const cfg = vscode.workspace.getConfiguration('koji');
@@ -27,6 +34,12 @@ export function readKojiConfig(): KojiConfig {
     tasksLimit: cfg.get<number>('tasks.limit', 50),
     tasksOwner: cfg.get<string>('tasks.owner', ''),
     tasksState: cfg.get<KojiTaskStateFilter>('tasks.state', 'ALL'),
+    ssl: {
+      caFile: cfg.get<string>('ssl.caFile', ''),
+      certFile: cfg.get<string>('ssl.certFile', ''),
+      keyFile: cfg.get<string>('ssl.keyFile', ''),
+      rejectUnauthorized: cfg.get<boolean>('ssl.rejectUnauthorized', true),
+    },
   };
 }
 
