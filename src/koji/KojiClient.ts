@@ -92,7 +92,8 @@ export class KojiClient {
     // Koji supports queryOpts with ordering and limit.
     // listBuilds(opts?: dict, queryOpts?: dict)
     const queryOpts = { order: '-completion_time', limit };
-    const builds = await this.call<unknown>('listBuilds', [{}, queryOpts]);
+    // IMPORTANT: first parameter is buildType (or None). Passing {} can break server-side SQL binding.
+    const builds = await this.call<unknown>('listBuilds', [null, queryOpts]);
     if (!Array.isArray(builds)) return [];
     return builds as KojiBuild[];
   }

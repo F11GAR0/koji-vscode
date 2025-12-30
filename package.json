@@ -72,10 +72,12 @@
           "default": "ALL",
           "enum": [
             "ALL",
+            "FREE",
             "OPEN",
+            "ASSIGNED",
             "CLOSED",
-            "FAILED",
-            "CANCELED"
+            "CANCELED",
+            "FAILED"
           ],
           "description": "Optional: filter tasks by state."
         },

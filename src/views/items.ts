@@ -18,9 +18,22 @@ export class KojiBuildItem extends vscode.TreeItem {
 
 export class KojiTaskItem extends vscode.TreeItem {
   constructor(public readonly task: KojiTask) {
-    super(`#${task.id} ${task.method}`, vscode.TreeItemCollapsibleState.None);
-    this.description = formatTaskState(task.state);
-    this.tooltip = `Task ID: ${task.id}\nOwner: ${task.owner_name ?? ''}\nState: ${formatTaskState(task.state)}`;
+    const owner = task.owner_name ? ` · ${task.owner_name}` : '';
+    super(`#${task.id} ${task.method}${owner}`, vscode.TreeItemCollapsibleState.None);
+
+    const created = task.create_time ? `created: ${task.create_time}` : '';
+    const state = formatTaskState(task.state);
+    this.description = [state, created].filter(Boolean).join(' · ');
+
+    const lines: string[] = [];
+    lines.push(`Task ID: ${task.id}`);
+    lines.push(`Method: ${task.method}`);
+    lines.push(`Owner: ${task.owner_name ?? ''}`);
+    lines.push(`State: ${state}`);
+    if (task.create_time) lines.push(`Create: ${task.create_time}`);
+    if (task.start_time) lines.push(`Start: ${task.start_time}`);
+    if (task.completion_time) lines.push(`Complete: ${task.completion_time}`);
+    this.tooltip = lines.join('\n');
     this.contextValue = 'kojiTask';
     this.command = {
       command: 'koji.openTaskLog',

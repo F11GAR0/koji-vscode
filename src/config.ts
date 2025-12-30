@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export type KojiTaskStateFilter = 'ALL' | 'OPEN' | 'CLOSED' | 'FAILED' | 'CANCELED';
+export type KojiTaskStateFilter = 'ALL' | 'FREE' | 'OPEN' | 'ASSIGNED' | 'CLOSED' | 'FAILED' | 'CANCELED';
 
 export interface KojiConfig {
   hubUrl: string;

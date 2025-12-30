@@ -8,23 +8,7 @@ import {
 import { KojiClient, type KojiTask } from '../koji/KojiClient';
 import { loadTlsOptions } from '../koji/tls';
 import { KojiTaskItem } from './items';
-
-function mapStateFilter(filter: KojiTaskStateFilter): number | undefined {
-  switch (filter) {
-    case 'ALL':
-      return undefined;
-    case 'OPEN':
-      return 1;
-    case 'CLOSED':
-      return 2;
-    case 'FAILED':
-      return 5;
-    case 'CANCELED':
-      return 3;
-    default:
-      return undefined;
-  }
-}
+import { mapTaskStateFilterToCode, sortTasksByCreateTimeDesc } from './taskUtils';
 
 export class TasksTreeDataProvider implements vscode.TreeDataProvider<KojiTaskItem> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<KojiTaskItem | undefined>();
@@ -74,8 +58,10 @@ export class TasksTreeDataProvider implements vscode.TreeDataProvider<KojiTaskIt
       this.tasks = await client.listTasksLatest({
         limit: cfg.tasksLimit,
         owner: cfg.tasksOwner || undefined,
-        state: mapStateFilter(cfg.tasksState),
+        state: mapTaskStateFilterToCode(cfg.tasksState),
       });
+      // Sort by create_time desc (fallback to id desc).
+      this.tasks = sortTasksByCreateTimeDesc(this.tasks);
     } catch (e: any) {
       const msg = String(e?.message ?? e);
       vscode.window.showErrorMessage(`Koji: failed to load tasks: ${msg}`);
