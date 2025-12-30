@@ -98,8 +98,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const buildsProvider = new BuildsTreeDataProvider(context.secrets);
   const tasksProvider = new TasksTreeDataProvider(context.secrets);
 
-  context.subscriptions.push(vscode.window.registerTreeDataProvider('kojiBuilds', buildsProvider));
-  context.subscriptions.push(vscode.window.registerTreeDataProvider('kojiTasks', tasksProvider));
+  // Bind providers to contributed views. This avoids "no data provider registered" in some activation timing scenarios.
+  const buildsView = vscode.window.createTreeView('kojiBuilds', { treeDataProvider: buildsProvider });
+  const tasksView = vscode.window.createTreeView('kojiTasks', { treeDataProvider: tasksProvider });
+  context.subscriptions.push(buildsView, tasksView);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('koji.refreshBuilds', () => buildsProvider.refresh()),

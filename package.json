@@ -12,6 +12,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onView:kojiBuilds",
     "onView:kojiTasks",
     "onCommand:koji.refreshBuilds",
@@ -103,11 +104,19 @@
     "commands": [
       {
         "command": "koji.refreshBuilds",
-        "title": "Koji: Refresh Builds"
+        "title": "Koji: Refresh Builds",
+        "icon": {
+          "light": "resources/refresh.svg",
+          "dark": "resources/refresh.svg"
+        }
       },
       {
         "command": "koji.refreshTasks",
-        "title": "Koji: Refresh Tasks"
+        "title": "Koji: Refresh Tasks",
+        "icon": {
+          "light": "resources/refresh.svg",
+          "dark": "resources/refresh.svg"
+        }
       },
       {
         "command": "koji.setPassword",
@@ -130,6 +139,20 @@
         "title": "Koji: Clear TLS Key Passphrase"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "koji.refreshBuilds",
+          "when": "view == kojiBuilds",
+          "group": "navigation"
+        },
+        {
+          "command": "koji.refreshTasks",
+          "when": "view == kojiTasks",
+          "group": "navigation"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {
