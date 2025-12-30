@@ -18,16 +18,20 @@ export class KojiBuildItem extends vscode.TreeItem {
 
 export class KojiTaskItem extends vscode.TreeItem {
   constructor(public readonly task: KojiTask) {
-    const owner = task.owner_name ? ` · ${task.owner_name}` : '';
-    super(`#${task.id} ${task.method}${owner}`, vscode.TreeItemCollapsibleState.None);
+    const subject = taskSubject(task);
+    const titleParts = [`#${task.id}`, task.method];
+    if (subject) titleParts.push(subject);
+    super(titleParts.join(' · '), vscode.TreeItemCollapsibleState.None);
 
     const created = task.create_time ? `created: ${task.create_time}` : '';
     const state = formatTaskState(task.state);
-    this.description = [state, created].filter(Boolean).join(' · ');
+    const owner = task.owner_name ? `owner: ${task.owner_name}` : '';
+    this.description = [state, owner, created].filter(Boolean).join(' · ');
 
     const lines: string[] = [];
     lines.push(`Task ID: ${task.id}`);
     lines.push(`Method: ${task.method}`);
+    if (subject) lines.push(`Subject: ${subject}`);
     lines.push(`Owner: ${task.owner_name ?? ''}`);
     lines.push(`State: ${state}`);
     if (task.create_time) lines.push(`Create: ${task.create_time}`);
@@ -41,6 +45,23 @@ export class KojiTaskItem extends vscode.TreeItem {
       arguments: [task.id],
     };
   }
+}
+
+function taskSubject(task: KojiTask): string | undefined {
+  const label = (task.label ?? '').trim();
+  if (label) return shorten(label);
+
+  const req: any = task.request as any;
+  if (Array.isArray(req) && typeof req[0] === 'string' && req[0].trim()) {
+    return shorten(req[0].trim());
+  }
+  if (typeof req === 'string' && req.trim()) return shorten(req.trim());
+  return undefined;
+}
+
+function shorten(s: string, max = 70): string {
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 1)}…`;
 }
 
 export function formatTaskState(state: number): string {

@@ -19,6 +19,7 @@ export interface KojiTask {
   id: number;
   method: string;
   state: number;
+  label?: string | null;
   owner_name?: string | null;
   create_time?: string | null;
   start_time?: string | null;
@@ -92,8 +93,14 @@ export class KojiClient {
     // Koji supports queryOpts with ordering and limit.
     // listBuilds(opts?: dict, queryOpts?: dict)
     const queryOpts = { order: '-completion_time', limit };
-    // IMPORTANT: first parameter is buildType (or None). Passing {} can break server-side SQL binding.
-    const builds = await this.call<unknown>('listBuilds', [null, queryOpts]);
+    /**
+     * IMPORTANT:
+     * Some Koji hubs do not accept XML-RPC <nil/> in requests. If we send null, the hub may mis-parse params and
+     * treat our dict as buildType, leading to server-side psycopg2 "can't adapt type 'dict'".
+     *
+     * Using empty string keeps the parameter "falsey" on the hub side without relying on <nil/>.
+     */
+    const builds = await this.call<unknown>('listBuilds', ['', queryOpts]);
     if (!Array.isArray(builds)) return [];
     return builds as KojiBuild[];
   }
