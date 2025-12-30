@@ -1,0 +1,144 @@
+{
+  "name": "koji-vscode",
+  "displayName": "Koji Tools",
+  "description": "VS Code extension for browsing Koji builds and tasks and viewing task logs.",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:kojiBuilds",
+    "onView:kojiTasks",
+    "onCommand:koji.refreshBuilds",
+    "onCommand:koji.refreshTasks",
+    "onCommand:koji.setPassword",
+    "onCommand:koji.clearPassword",
+    "onCommand:koji.openTaskLog"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Koji",
+      "properties": {
+        "koji.hubUrl": {
+          "type": "string",
+          "default": "https://koji.fedoraproject.org/kojihub",
+          "description": "Koji hub URL (XML-RPC endpoint)."
+        },
+        "koji.webUrl": {
+          "type": "string",
+          "default": "https://koji.fedoraproject.org/koji",
+          "description": "Koji web UI base URL."
+        },
+        "koji.filesUrl": {
+          "type": "string",
+          "default": "https://koji.fedoraproject.org/kojifiles",
+          "description": "Koji files base URL (for task logs)."
+        },
+        "koji.username": {
+          "type": "string",
+          "default": "",
+          "description": "Koji username. Password is stored in VS Code Secret Storage via command."
+        },
+        "koji.builds.limit": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 200,
+          "description": "How many latest builds to show."
+        },
+        "koji.tasks.limit": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "How many latest tasks to show."
+        },
+        "koji.tasks.owner": {
+          "type": "string",
+          "default": "",
+          "description": "Optional: filter tasks by owner username."
+        },
+        "koji.tasks.state": {
+          "type": "string",
+          "default": "ALL",
+          "enum": [
+            "ALL",
+            "OPEN",
+            "CLOSED",
+            "FAILED",
+            "CANCELED"
+          ],
+          "description": "Optional: filter tasks by state."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "koji.refreshBuilds",
+        "title": "Koji: Refresh Builds"
+      },
+      {
+        "command": "koji.refreshTasks",
+        "title": "Koji: Refresh Tasks"
+      },
+      {
+        "command": "koji.setPassword",
+        "title": "Koji: Set Password"
+      },
+      {
+        "command": "koji.clearPassword",
+        "title": "Koji: Clear Password"
+      },
+      {
+        "command": "koji.openTaskLog",
+        "title": "Koji: Open Task Log"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "koji",
+          "title": "Koji",
+          "icon": "resources/koji.svg"
+        }
+      ]
+    },
+    "views": {
+      "koji": [
+        {
+          "id": "kojiBuilds",
+          "name": "Builds"
+        },
+        {
+          "id": "kojiTasks",
+          "name": "Tasks"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -p . -w",
+    "test": "tsx ./node_modules/mocha/bin/mocha \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^22.10.7",
+    "@types/vscode": "^1.85.0",
+    "mocha": "^10.3.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.0",
+    "typescript": "^5.7.2"
+  }
+}
+
+
