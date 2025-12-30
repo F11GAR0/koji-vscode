@@ -90,19 +90,46 @@ export class KojiClient {
   }
 
   async listBuildsLatest(limit: number): Promise<KojiBuild[]> {
-    // Koji supports queryOpts with ordering and limit.
-    // listBuilds(opts?: dict, queryOpts?: dict)
+    // Prefer server-side ordering/limit via queryOpts when supported.
     const queryOpts = { order: '-completion_time', limit };
-    /**
-     * IMPORTANT:
-     * Some Koji hubs do not accept XML-RPC <nil/> in requests. If we send null, the hub may mis-parse params and
-     * treat our dict as buildType, leading to server-side psycopg2 "can't adapt type 'dict'".
-     *
-     * Using empty string keeps the parameter "falsey" on the hub side without relying on <nil/>.
-     */
-    const builds = await this.call<unknown>('listBuilds', ['', queryOpts]);
-    if (!Array.isArray(builds)) return [];
-    return builds as KojiBuild[];
+
+    const tryCalls: Array<() => Promise<unknown>> = [
+      // Newer hubs: listBuilds(buildType, queryOpts)
+      () => this.call('listBuilds', ['', queryOpts]),
+    ];
+
+    let lastErr: unknown;
+    for (const fn of tryCalls) {
+      try {
+        const builds = await fn();
+        if (!Array.isArray(builds)) return [];
+        return builds as KojiBuild[];
+      } catch (e: any) {
+        lastErr = e;
+        const msg = String(e?.faultString ?? e?.message ?? e);
+        // Some hubs interpret the 2nd argument positionally as e.g. state/userID/etc (not queryOpts),
+        // and then crash trying to bind a dict into SQL.
+        if (msg.includes("can't adapt type 'dict'")) {
+          break;
+        }
+      }
+    }
+
+    // Fallback: call without queryOpts and do client-side sort/limit.
+    try {
+      const builds = await this.call<unknown>('listBuilds', ['']);
+      if (!Array.isArray(builds)) return [];
+      const list = builds as KojiBuild[];
+      const time = (b: KojiBuild): number => {
+        const s = b.completion_time ?? b.creation_time ?? '';
+        const t = Date.parse(s);
+        return Number.isFinite(t) ? t : 0;
+      };
+      return [...list].sort((a, b) => time(b) - time(a)).slice(0, limit);
+    } catch (e) {
+      // Surface original failure context if fallback doesn't help.
+      throw lastErr ?? e;
+    }
   }
 
   async listTasksLatest(opts: {

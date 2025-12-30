@@ -2,7 +2,7 @@
   "name": "koji-vscode",
   "displayName": "Koji Tools",
   "description": "VS Code extension for browsing Koji builds and tasks and viewing task logs.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "commonjs",
   "publisher": "local",
   "engines": {

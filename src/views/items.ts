@@ -48,20 +48,53 @@ export class KojiTaskItem extends vscode.TreeItem {
 }
 
 function taskSubject(task: KojiTask): string | undefined {
-  const label = (task.label ?? '').trim();
-  if (label) return shorten(label);
+  const label = typeof task.label === 'string' ? task.label.trim() : '';
+  if (label && !looksLikeXml(label)) return shorten(label);
 
   const req: any = task.request as any;
-  if (Array.isArray(req) && typeof req[0] === 'string' && req[0].trim()) {
-    return shorten(req[0].trim());
+  if (Array.isArray(req) && typeof req[0] === 'string') {
+    const s = req[0].trim();
+    if (s && !looksLikeXml(s)) {
+      // Often build tasks include SCM URL as first request item. Derive package name if possible.
+      const pkg = packageFromScmUrl(s);
+      return shorten(pkg ?? s);
+    }
   }
-  if (typeof req === 'string' && req.trim()) return shorten(req.trim());
+  if (typeof req === 'string') {
+    const s = req.trim();
+    if (s && !looksLikeXml(s)) return shorten(s);
+  }
   return undefined;
 }
 
 function shorten(s: string, max = 70): string {
   if (s.length <= max) return s;
   return `${s.slice(0, max - 1)}…`;
+}
+
+function looksLikeXml(s: string): boolean {
+  const t = s.trimStart();
+  return t.startsWith('<?xml') || (t.includes('<') && t.includes('>'));
+}
+
+function packageFromScmUrl(s: string): string | undefined {
+  // Best-effort extraction of "package name" from SCM URL.
+  // Examples:
+  // - git+https://.../rpms/bash?#<rev>  -> bash
+  // - https://.../cgit/rpms/bash.git    -> bash
+  // - git://.../bash                   -> bash
+  try {
+    if (!s.includes('://')) return undefined;
+    // Strip scheme prefixes like "git+https://"
+    const cleaned = s.replace(/^git\+/, '');
+    const u = new URL(cleaned);
+    const path = u.pathname.replace(/\/+$/, '');
+    const last = path.split('/').filter(Boolean).pop();
+    if (!last) return undefined;
+    return last.endsWith('.git') ? last.slice(0, -4) : last;
+  } catch {
+    return undefined;
+  }
 }
 
 export function formatTaskState(state: number): string {
