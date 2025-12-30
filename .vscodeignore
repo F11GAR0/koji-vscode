@@ -1,7 +1,9 @@
 **/.git/**
 **/.vscode/**
 **/.github/**
-**/node_modules/**
+node_modules/**
+!node_modules/fast-xml-parser/**
+!node_modules/strnum/**
 
 src/**
 test/**
