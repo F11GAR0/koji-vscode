@@ -92,17 +92,17 @@ async function openBuildInBrowser(buildId: number, webUrlFromItem?: string): Pro
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  const logProvider = new KojiLogContentProvider(context.secrets);
-  context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(KOJI_LOG_SCHEME, logProvider));
+  const out = vscode.window.createOutputChannel('Koji');
+  out.appendLine('Activating Koji Tools...');
+  context.subscriptions.push(out);
 
   const buildsProvider = new BuildsTreeDataProvider(context.secrets);
   const tasksProvider = new TasksTreeDataProvider(context.secrets);
 
-  // Bind providers to contributed views. This avoids "no data provider registered" in some activation timing scenarios.
-  const buildsView = vscode.window.createTreeView('kojiBuilds', { treeDataProvider: buildsProvider });
-  const tasksView = vscode.window.createTreeView('kojiTasks', { treeDataProvider: tasksProvider });
-  context.subscriptions.push(buildsView, tasksView);
+  const logProvider = new KojiLogContentProvider(context.secrets);
+  context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(KOJI_LOG_SCHEME, logProvider));
 
+  // Register commands first so they exist even if view wiring fails for any reason.
   context.subscriptions.push(
     vscode.commands.registerCommand('koji.refreshBuilds', () => buildsProvider.refresh()),
     vscode.commands.registerCommand('koji.refreshTasks', () => tasksProvider.refresh()),
@@ -116,6 +116,18 @@ export function activate(context: vscode.ExtensionContext): void {
     )
   );
 
+  // Bind providers to contributed views. If createTreeView throws, fall back to registerTreeDataProvider.
+  try {
+    const buildsView = vscode.window.createTreeView('kojiBuilds', { treeDataProvider: buildsProvider });
+    const tasksView = vscode.window.createTreeView('kojiTasks', { treeDataProvider: tasksProvider });
+    context.subscriptions.push(buildsView, tasksView);
+    out.appendLine('Tree views registered via createTreeView().');
+  } catch (e: any) {
+    out.appendLine(`createTreeView failed, falling back to registerTreeDataProvider: ${String(e?.message ?? e)}`);
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('kojiBuilds', buildsProvider));
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('kojiTasks', tasksProvider));
+  }
+
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('koji')) {
@@ -124,6 +136,8 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     })
   );
+
+  out.appendLine('Koji Tools activated.');
 }
 
 export function deactivate(): void {
