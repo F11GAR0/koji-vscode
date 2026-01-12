@@ -2,7 +2,7 @@
 
 Расширение для VS Code для просмотра Koji: крайних сборок, списка тасок и логов по таске.
 
-![Working](./assets/working.jpg)
+![Working](https://github.com/F11GAR0/koji-vscode/blob/main/assets/working.jpg)
 
 ### Возможности
 
