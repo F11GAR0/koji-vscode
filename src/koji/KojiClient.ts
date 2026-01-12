@@ -91,11 +91,10 @@ export class KojiClient {
 
   async listBuildsLatest(limit: number): Promise<KojiBuild[]> {
 
-    const query: Record<string, XmlRpcValue> = {
+    const query: Record<string, XmlRpcValue> = { queryParams: {
           order: '-id',
           limit: limit,
-        };
-
+        } };
     const builds = await this.call<unknown>('listBuilds', [query]);
     if (!Array.isArray(builds)) return [];
     return builds as KojiBuild[];
