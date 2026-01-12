@@ -90,12 +90,15 @@ export class KojiClient {
   }
 
   async listBuildsLatest(limit: number): Promise<KojiBuild[]> {
-    // Prefer server-side ordering/limit via queryOpts when supported.
-    const queryOpts = { order: '-completion_time', limit };
+
+    const query: Record<string, XmlRpcValue> = {
+          order: '-id',
+          limit: limit,
+        };
 
     const tryCalls: Array<() => Promise<unknown>> = [
       // Newer hubs: listBuilds(buildType, queryOpts)
-      () => this.call('listBuilds', ['', queryOpts]),
+      () => this.call('listBuilds', [query]),
     ];
 
     let lastErr: unknown;
