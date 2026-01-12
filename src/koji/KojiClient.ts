@@ -24,7 +24,7 @@ export interface KojiTask {
   create_time?: string | null;
   start_time?: string | null;
   completion_time?: string | null;
-  request?: unknown;
+  request: string;
 }
 
 export interface KojiClientOptions {
@@ -91,11 +91,12 @@ export class KojiClient {
 
   async listBuildsLatest(limit: number): Promise<KojiBuild[]> {
 
-    const query: Record<string, XmlRpcValue> = { queryParams: {
-          order: '-id',
+    const query: Record<string, XmlRpcValue> = {
+          order: '-build_id',
           limit: limit,
-        } };
-    const builds = await this.call<unknown>('listBuilds', [query]);
+    };
+
+    const builds = await this.call<unknown>('listBuilds', [null, null, null, null, null, null, null, null, null, null, null, null, null, query]);
     if (!Array.isArray(builds)) return [];
     return builds as KojiBuild[];
   }
@@ -112,7 +113,7 @@ export class KojiClient {
     if (opts.owner) query.owner = opts.owner;
     if (typeof opts.state === 'number') query.state = opts.state;
 
-    const tasks = await this.call<unknown>('listTasks', [query]);
+    const tasks = await this.call<unknown>('listTasks', [null, query]);
     if (!Array.isArray(tasks)) return [];
     return tasks as KojiTask[];
   }

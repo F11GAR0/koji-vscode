@@ -185,7 +185,8 @@
     "test": "tsx ./node_modules/mocha/bin/mocha \"test/**/*.test.ts\""
   },
   "dependencies": {
-    "fast-xml-parser": "^4.5.0"
+    "fast-xml-parser": "^4.5.0",
+    "stax-xml": "^0.5.2"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
@@ -198,5 +199,3 @@
     "typescript": "^5.7.2"
   }
 }
-
-

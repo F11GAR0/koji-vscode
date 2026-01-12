@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { StaxXmlParser, XmlEventType } from 'stax-xml';
 import type { KojiBuild, KojiTask } from '../koji/KojiClient';
 
 export class KojiBuildItem extends vscode.TreeItem {
@@ -14,6 +15,26 @@ export class KojiBuildItem extends vscode.TreeItem {
       arguments: [build.build_id, webUrl],
     };
   }
+}
+
+function findLinesWithWord(text: string, searchWord: string, matchWholeWord: boolean = false): string[] {
+    // Split the text into an array of lines using a regular expression for common line breaks
+    const lines = text.split(/\r?\n/);
+
+    // Filter the lines based on the presence of the search word
+    const matchingLines = lines.filter(line => {
+        if (matchWholeWord) {
+            // Use a regular expression with word boundaries for exact word matching
+            const regex = new RegExp(`\\b${searchWord}\\b`, 'i'); // 'i' for case-insensitive
+            return regex.test(line);
+        } else {
+            // Use includes() for simple substring matching (case-sensitive by default)
+            // For case-insensitive substring search, convert both to lower case:
+            return line.toLowerCase().includes(searchWord.toLowerCase());
+        }
+    });
+
+    return matchingLines;
 }
 
 export class KojiTaskItem extends vscode.TreeItem {
@@ -34,6 +55,7 @@ export class KojiTaskItem extends vscode.TreeItem {
     if (subject) lines.push(`Subject: ${subject}`);
     lines.push(`Owner: ${task.owner_name ?? ''}`);
     lines.push(`State: ${state}`);
+    lines.push(`Request cli-build: ${findLinesWithWord(task.request, 'cli-build', true)}`)
     if (task.create_time) lines.push(`Create: ${task.create_time}`);
     if (task.start_time) lines.push(`Start: ${task.start_time}`);
     if (task.completion_time) lines.push(`Complete: ${task.completion_time}`);
